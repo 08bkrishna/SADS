@@ -44,6 +44,7 @@ private slots:
     void on_checkBox_toggled(bool checked);
     void disableBooked(QString event);
     void customerBooked(QString event);
+    void cancelSeats();
     //Go to "seatdisplay.cpp" for function definitions and explanation of usage
 };
 
@@ -55,7 +56,6 @@ class booking_dialogue : public QDialog, public Ui::booking
 
 public:
     booking_dialogue(QWidget *parent = 0);
-    std::vector<QString> details;
     QString refCode;
 private slots:
     void on_okButton_clicked();
