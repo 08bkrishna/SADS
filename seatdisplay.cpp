@@ -76,6 +76,7 @@ seatdisplay::seatdisplay(QWidget *parent) : QMainWindow(parent)
     //Sets up the action `actionBook_Seats`; sets the shortcut;
     //Sets the tooltip, to give users extra help
 
+    actionCancel_Seats->setToolTip(tr("Cancel selected seats"));
     actionCancel_Seats->setShortcut(tr("Ctrl+C"));
     //insert connection for cancel seats function
 
@@ -274,6 +275,7 @@ void seatdisplay::cusLogin()
             actionCustomer_Login->setText("Logout");
             connect(actionCustomer_Login, SIGNAL(triggered()), this, SLOT(logout()));
             customerBooked("Friday - 1900");
+            actionCancel_Seats->setEnabled(true);
         }
 
         this->setEnabled(true);
@@ -286,6 +288,7 @@ void seatdisplay::logout()
         cus = false;
         actionCustomer_Login->setText("Customer Login");
         connect(actionCustomer_Login, SIGNAL(triggered()), this, SLOT(cusLogin()));
+        actionCancel_Seats->setDisabled(true);
     } else if (admin) {
         admin = false;
         actionLogin->setText("Login");
