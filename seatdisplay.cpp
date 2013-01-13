@@ -4,7 +4,7 @@
 #include "seatdisplay.h"
 
 bool admin = false;
-bool cus = false;
+bool cus = false; //These two `bool`s are used to check the type of user who is logged in
 bool loginType; //TRUE: admin; FALSE: customer
 QString cusREF;
 
@@ -16,14 +16,19 @@ int complexity(QString passwd) {
         if(!upper && passwd[i].isUpper()){upper = true;}
         if(!numbers && passwd[i].isDigit()){numbers = true;}
         if(!symbols && !(passwd[i].isLetterOrNumber())){symbols = true;}
-        if(lower && upper && numbers && symbols){i = -1;}
+        if(lower && upper && numbers && symbols){i = -1;} //This line allows code to break out of the `if` if all four things are found before the whole string is checked
     };
 
     if(passwd.length() >= 10){longEnough = true;}
 
     return 5 - lower - upper - numbers - symbols - longEnough;
+    //`complexity()` IS NOT part of any class, so can ONLY be referred to
+    //in this file. It uses a simple checking algorithm to return the
+    //complexity of a string, and is used to make sure the user gives
+    //a suitably complex password at sign up.
+    //It returns a number which should be seen as being out of 5 [stars],
+    //with a lower number indicating a weaker password.
 }
-
 
 bool createConnection()
 {
@@ -39,26 +44,44 @@ bool createConnection()
         return false;
     }
     return true;
+    /*
+      This function connects the program to the database hosted
+      at 08bkrishna.no-ip.org called `computing`. It returns a
+      boolean which is used in `seatdisplay::seatdisplay()` to
+      tell the program whether it should show the dialog. This
+      function also returns an error message if necessary.
+    */
 }
 
 seatdisplay::seatdisplay(QWidget *parent) : QMainWindow(parent)
 {
     setupUi(this);
-    init_vector(seat_displacement);
+    //Sets up the objects in the XML file "seatdisplay.ui"
 
     QRegExp rxSeats("[A-Z0-9]{0,3}");
     seats = this->findChildren<QPushButton *>(rxSeats);
+    //These add all of the objects in the `seatdisplay` dialogue to a `Qlist`
+    //which can then be used to edit the states of the buttons in other parts
+    //of the program. We use `rxSeats` because in addition to the seat buttons
+    //in the dialogue, there are some other buttons which we don't want in
+    //this list, therefore `rxSeats` filters these out, as they do not follow
+    //the naming convention used by the seat buttons.
 
     connect(bookButton, SIGNAL(clicked()), this, SLOT(seatbooking()));
+    //Connects the `bookButton` `clicked()` signal to `seatbooking()`
 
     connect(actionBook_Seats, SIGNAL(triggered()), this, SLOT(seatbooking()));
     actionBook_Seats->setShortcut(tr("Ctrl+B"));
     actionBook_Seats->setToolTip(tr("Book selected seats"));
-    //insert connection for cancel seats function
+    //Sets up the action `actionBook_Seats`; sets the shortcut;
+    //Sets the tooltip, to give users extra help
+
     actionCancel_Seats->setShortcut(tr("Ctrl+C"));
+    //insert connection for cancel seats function
 
     connect(actionLogin, SIGNAL(triggered()), this, SLOT(adminLogin()));
     actionLogin->setShortcut(tr("Alt+L"));
+
     connect(actionView_Settings, SIGNAL(triggered()), this, SLOT(showAdminPanel()));
     actionView_Settings->setShortcut(tr("Alt+S"));
 
@@ -68,8 +91,11 @@ seatdisplay::seatdisplay(QWidget *parent) : QMainWindow(parent)
     connect(action_Quit, SIGNAL(triggered()), this, SLOT(close()));
     action_Quit->setShortcut(tr("Ctrl+Q"));
     action_Quit->setToolTip(tr("Quit the application"));
+    //These `connect()`s do the same as the one for `actionBook_Seats`
+    //and follow the same setup.
 
     this->setWindowTitle("Seating Plan");
+
     if(!createConnection())
     {
         QMessageBox error;
@@ -81,9 +107,17 @@ seatdisplay::seatdisplay(QWidget *parent) : QMainWindow(parent)
     else {
         this->show();
     }
+    //Referred to in the comments in "main.cpp", you can see here that
+    //I have used the `QWidget::show()` function inside the initiator
+    //function, as this allows me to prevent the `seatdisplay` dialogue
+    //from appearing when the DB cannot be found. If I used `show()` in
+    //`main()` in "main.cpp", then the dialogue would apear in either case
+    //which could lead customers into think that they have booked seats
+    //when they actually haven't.
 
     QSqlQuery query;
     query.exec("SELECT * FROM seats WHERE disabled=1");
+
     while(query.next())
     {
         for(int i = 0; i < seats.size(); ++i)
@@ -94,25 +128,13 @@ seatdisplay::seatdisplay(QWidget *parent) : QMainWindow(parent)
             }
         }
     }
-//    QSqlQuery query2;
-//    query2.exec("SELECT * FROM `computing`.`events`");
-//    while(query2.next())
-//    {
-//        booked.push_back(std::vector<QString>());
+    //This disables the seats which have been marked as disabled by
+    //the admin users in the DB, and they are only enabled if
+    //the user explicitly wants disabled seats, and ticks the
+    //checkbox `checkBox` which signals this intent to the program.
 
-//        QString quer("SELECT * FROM bookings WHERE events_id=");
-//        quer.append(query2.value(0).toString());
-
-//        QSqlQuery query3;
-//        query3.exec(quer);
-
-//        while(query3.next())
-//        {
-//            int pos = query2.value(0).toInt() - 1;
-//            booked[pos].push_back(query3.value(0).toString());
-//        }
-//    }
     disableBooked("Friday - 1900");
+    //This disables any seats booked for this event, which is the default.
 }
 
 disabilityEditor::disabilityEditor(QDialog *parent) : QDialog(parent)
@@ -319,27 +341,6 @@ void seatdisplay::seatbooking()
     //exec waits for it to close, meaning that once we are done with the dialogue box, here the booking dialogue,
     //we can go back to this function, and re-enable the main window which at the start of the function was set
     //to disabled. using show does not do this, therefore exec is used here.
-}
-
-void seatdisplay::init_vector(std::vector<std::pair<char, int> > &vec)
-{
-    vec.push_back(std::make_pair('A', 4));
-    vec.push_back(std::make_pair('B', 3));
-    vec.push_back(std::make_pair('C', 2));
-    vec.push_back(std::make_pair('D', 1));
-    vec.push_back(std::make_pair('E', 0));
-    vec.push_back(std::make_pair('F', 0));
-    vec.push_back(std::make_pair('G', 1));
-    vec.push_back(std::make_pair('H', 1));
-    vec.push_back(std::make_pair('J', 1));
-    vec.push_back(std::make_pair('K', 0));
-    vec.push_back(std::make_pair('L', 0));
-    /*
-      Think this is meant to be used to tell how far two seats are from each other
-      in order to show customers the closest seat with suitable properties.
-
-      Is uneccessary, so may be removed at end.
-      */
 }
 
 void seatdisplay::on_friRadio_toggled(bool checked)

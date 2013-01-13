@@ -19,25 +19,21 @@
 
 class seatdisplay : public QMainWindow, public Ui::seatdisplay
 {
+    //This class is for the main window of the application which contains
+    //all of the seats and the primary function of the program: booking,
+    //cancelling, login and admin access
     Q_OBJECT
 
 public:
-    seatdisplay(QWidget *parent = 0);
-    QList<QPushButton *> seats;
+    seatdisplay(QWidget *parent = 0); //Initiator function for this class
+    QList<QPushButton *> seats; //List of all buttons in the form which are seats
 
-    //int A_C_seats;
-    //int D_F_seats;
-    //int G_L_seats;
-
-    std::vector<std::vector<QString> > booked;
-    std::vector<QString> fri_clicked;
-    std::vector<QString> sat_clicked;
-
-    std::vector<std::pair<char, int> > seat_displacement;
+    std::vector<std::vector<QString> > booked; //List of seats booked as shown by the DB
+    std::vector<QString> fri_clicked; //List of seats which have been clicked for the friday; Allows users to switch between days without losing selection
+    std::vector<QString> sat_clicked; //Used in conjunction with `fri_clicked`
 
 private slots:
     void seatbooking();
-    void init_vector(std::vector<std::pair<char, int> >& vec);
     void adminLogin();
     void cusLogin();
     void logout();
@@ -48,10 +44,13 @@ private slots:
     void on_checkBox_toggled(bool checked);
     void disableBooked(QString event);
     void customerBooked(QString event);
+    //Go to "seatdisplay.cpp" for function definitions and explanation of usage
 };
 
 class booking_dialogue : public QDialog, public Ui::booking
 {
+    //This class is for the dialogue which is for users to input
+    //their information, if not already logged in.
     Q_OBJECT
 
 public:
@@ -61,10 +60,17 @@ public:
 private slots:
     void on_okButton_clicked();
     void passChecker(QString passwd);
+    //Go to "seatdisplay.cpp" for function definitions and explanation of usage
 };
 
 class adminpanel : public QDialog, public Ui::adminpanel
 {
+    //This class is for the dialogue which directs admins to
+    //different admin options, e.g. it links to the dialogue
+    //which allows admins to change which seats are disabled
+    //This signposting allows for ease of use
+    //This should only be accessable by admins who have
+    //already logged in.
     Q_OBJECT
 
 public:
@@ -72,6 +78,7 @@ public:
 private slots:
     void disabledSeating();
     void priceChange();
+    //Go to "seatdisplay.cpp" for function definitions and explanation of usage
 };
 
 class waiting : public QDialog, public Ui::waiting
@@ -84,6 +91,9 @@ public:
 
 class login : public QDialog, public Ui::Login
 {
+    //This class is for the dialogue which allows users and
+    //admins to login. It uses its slots to customize it for
+    //each use, getting rid of the need for 2 separate dialogues.
     Q_OBJECT
 
 public:
@@ -91,10 +101,14 @@ public:
 private slots:
     void adminLogin();
     void cusLogin();
+    //Go to "seatdisplay.cpp" for function definitions and explanation of usage
 };
 
 class disabilityEditor : public QDialog, public Ui::disabilityEditor
 {
+    //This class is for the dialogue which is used to edit which
+    //seats are disabled, and can only be accessed from the
+    //`adminpanel` object, to prevent editing by users.
     Q_OBJECT
 
 public:
@@ -103,6 +117,7 @@ public:
 private slots:
     void setDisab();
     void setNotDisab();
+    //Go to "seatdisplay.cpp" for function definitions and explanation of usage
 };
 
 #endif // SEATDISPLAY_H
