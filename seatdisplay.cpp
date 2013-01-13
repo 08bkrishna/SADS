@@ -159,6 +159,11 @@ disabilityEditor::disabilityEditor(QDialog *parent) : QDialog(parent)
 
     connect(setDis, SIGNAL(clicked()), this, SLOT(setDisab()));
     connect(setNotDis, SIGNAL(clicked()), this, SLOT(setNotDisab()));
+    /*
+      As can be seen this function is very similar to the init function of `seatidisplay`,
+      so refer to any comments there for information on the use of `seats` or the `while`
+      statement in this function.
+      */
 }
 
 booking_dialogue::booking_dialogue(QWidget *parent) : QDialog(parent)
