@@ -78,6 +78,7 @@ seatdisplay::seatdisplay(QWidget *parent) : QMainWindow(parent)
 
     actionCancel_Seats->setToolTip(tr("Cancel selected seats"));
     actionCancel_Seats->setShortcut(tr("Ctrl+C"));
+    actionCancel_Seats->setDisabled(true);
     //insert connection for cancel seats function
 
     connect(actionLogin, SIGNAL(triggered()), this, SLOT(adminLogin()));
