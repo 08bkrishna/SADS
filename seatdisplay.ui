@@ -3891,7 +3891,7 @@ border-radius: 4;</string>
   </action>
   <action name="actionCancel_Seats">
    <property name="text">
-    <string>Cancel Seats</string>
+    <string>Cancel Clicked Seats</string>
    </property>
   </action>
   <action name="action_Quit">
