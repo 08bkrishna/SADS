@@ -60,7 +60,7 @@ seatdisplay::seatdisplay(QWidget *parent) : QMainWindow(parent)
 
     QRegExp rxSeats("[A-Z0-9]{0,3}");
     seats = this->findChildren<QPushButton *>(rxSeats);
-    //These add all of the objects in the `seatdisplay` dialogue to a `Qlist`
+    //These add all of the objects in the `seatdisplay` dialogue to a `QList`
     //which can then be used to edit the states of the buttons in other parts
     //of the program. We use `rxSeats` because in addition to the seat buttons
     //in the dialogue, there are some other buttons which we don't want in
@@ -143,6 +143,12 @@ disabilityEditor::disabilityEditor(QDialog *parent) : QDialog(parent)
 
     QRegExp rxSeats("[A-Z0-9]{0,3}");
     seats = this->findChildren<QPushButton *>(rxSeats);
+    //These add all of the objects in the `disabilityEditor` dialogue to a `QList`
+    //which can then be used to edit the states of the buttons in other parts
+    //of the program. We use `rxSeats` because in addition to the seat buttons
+    //in the dialogue, there are some other buttons which we don't want in
+    //this list, therefore `rxSeats` filters these out, as they do not follow
+    //the naming convention used by the seat buttons.
 
     QSqlQuery query;
     query.exec("SELECT * FROM seats WHERE disabled=1");
@@ -156,13 +162,17 @@ disabilityEditor::disabilityEditor(QDialog *parent) : QDialog(parent)
             }
         }
     }
+    //This disables the seats which have been marked as disabled by
+    //the admin users in the DB, and they are only enabled if
+    //the user explicitly wants disabled seats, and ticks the
+    //checkbox `checkBox` which signals this intent to the program.
+
 
     connect(setDis, SIGNAL(clicked()), this, SLOT(setDisab()));
     connect(setNotDis, SIGNAL(clicked()), this, SLOT(setNotDisab()));
     /*
-      As can be seen this function is very similar to the init function of `seatidisplay`,
-      so refer to any comments there for information on the use of `seats` or the `while`
-      statement in this function.
+      These `connect()`s set the functions called by each button when
+      they give the signal `clicked()`, i.e. when they are clicked.
       */
 }
 
