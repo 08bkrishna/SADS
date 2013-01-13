@@ -144,7 +144,7 @@ disabilityEditor::disabilityEditor(QDialog *parent) : QDialog(parent)
     QRegExp rxSeats("[A-Z0-9]{0,3}");
     seats = this->findChildren<QPushButton *>(rxSeats);
     //These add all of the objects in the `disabilityEditor` dialogue to a `QList`
-    //which can then be used to edit the states of the buttons in other parts
+    //which can then be used to edit the states of the buttons from other parts
     //of the program. We use `rxSeats` because in addition to the seat buttons
     //in the dialogue, there are some other buttons which we don't want in
     //this list, therefore `rxSeats` filters these out, as they do not follow
