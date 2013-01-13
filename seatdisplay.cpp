@@ -299,67 +299,89 @@ void seatdisplay::logout()
 
 }
 
+void seatdisplay::cancelSeats() {
+
+}
+
 void seatdisplay::seatbooking()
 {
-    this->setEnabled(false);
-    booking_dialogue *dialog = new booking_dialogue;
-
-    dialog->comboBox->clear();
-
-    QSqlQuery query;
-    QSqlQuery prices;
-    QSqlRecord rec;
-
-    for(int i = 0; i < seats.size(); ++i)
-    {
-        if((*seats[i]).isChecked() && (*seats[i]).isCheckable())
+    if(cus){
+        int checked;
+        for(int i = 0; i < seats.size(); ++i)
         {
-            dialog->comboBox->addItem((*seats[i]).objectName());
-
-            QString quer("SELECT * FROM seats WHERE seat='");
-            quer.append((*seats[i]).objectName()); quer.append("'");
-
-            query.prepare(quer);
-            query.exec();
-            query.first();
-            rec = query.record();
-
-            int priceBand = rec.value(2).toInt();
-            prices.exec("SELECT * FROM prices");
-
-            while(prices.next())
+            if((*seats[i]).isChecked() && (*seats[i]).isCheckable())
             {
-                if(priceBand == prices.value(0).toInt())
+                ++checked;
+            }
+        }
+        if(checked > 10) {
+            QMessageBox msgbox;
+            msgbox.setText("You chosen too many seats.\nPlease go back and choose a maximum of 10 seats.");
+            msgbox.exec();
+        } else {
+
+        }
+    } else {
+        this->setEnabled(false);
+        booking_dialogue *dialog = new booking_dialogue;
+
+        dialog->comboBox->clear();
+
+        QSqlQuery query;
+        QSqlQuery prices;
+        QSqlRecord rec;
+
+        for(int i = 0; i < seats.size(); ++i)
+        {
+            if((*seats[i]).isChecked() && (*seats[i]).isCheckable())
+            {
+                dialog->comboBox->addItem((*seats[i]).objectName());
+
+                QString quer("SELECT * FROM seats WHERE seat='");
+                quer.append((*seats[i]).objectName()); quer.append("'");
+
+                query.prepare(quer);
+                query.exec();
+                query.first();
+                rec = query.record();
+
+                int priceBand = rec.value(2).toInt();
+                prices.exec("SELECT * FROM prices");
+
+                while(prices.next())
                 {
-                    dialog->lcdNumber->display(dialog->lcdNumber->value() + prices.value(1).toDouble());
+                    if(priceBand == prices.value(0).toInt())
+                    {
+                        dialog->lcdNumber->display(dialog->lcdNumber->value() + prices.value(1).toDouble());
+                    }
                 }
             }
         }
-    }
 
-    QString day = (friRadio->isChecked())?"on Friday":"on Saturday";
+        QString day = (friRadio->isChecked())?"on Friday":"on Saturday";
 
-    dialog->dayLabel->setText(day);
+        dialog->dayLabel->setText(day);
 
-    if(dialog->comboBox->count() == 0) {
-        QMessageBox msgbox;
-        msgbox.setText("You haven't chosen any seats.\nPlease go back and choose which seats you wish to book.");
-        msgbox.exec();
+        if(dialog->comboBox->count() == 0) {
+            QMessageBox msgbox;
+            msgbox.setText("You haven't chosen any seats.\nPlease go back and choose which seats you wish to book.");
+            msgbox.exec();
+        }
+        else if(dialog->comboBox->count() > 10)
+        {
+            QMessageBox msgbox;
+            msgbox.setText("You chosen too many seats.\nPlease go back and choose a maximum of 10 seats.");
+            msgbox.exec();
+        }
+        else {
+          //dialog->show();
+            dialog->exec();
+        }
+        this->setEnabled(true);
+        //exec waits for it to close, meaning that once we are done with the dialogue box, here the booking dialogue,
+        //we can go back to this function, and re-enable the main window which at the start of the function was set
+        //to disabled. using show does not do this, therefore exec is used here.
     }
-    else if(dialog->comboBox->count() > 10)
-    {
-        QMessageBox msgbox;
-        msgbox.setText("You chosen too many seats.\nPlease go back and choose a maximum of 10 seats.");
-        msgbox.exec();
-    }
-    else {
-//        dialog->show();
-        dialog->exec();
-    }
-    this->setEnabled(true);
-    //exec waits for it to close, meaning that once we are done with the dialogue box, here the booking dialogue,
-    //we can go back to this function, and re-enable the main window which at the start of the function was set
-    //to disabled. using show does not do this, therefore exec is used here.
 }
 
 void seatdisplay::on_friRadio_toggled(bool checked)
@@ -634,7 +656,7 @@ void booking_dialogue::passChecker(QString passwd) {
 void seatdisplay::disableBooked(QString event)
 {
     QSqlQuery query;
-    query.exec("SELECT * FROM bookings WHERE Events_ID='" + event + "'");
+    query.exec("SELECT * FROM bookings WHERE ID='" + event + "'");
     while(query.next())
     {
         for(int i = 0; i < seats.size(); ++i)
@@ -659,7 +681,6 @@ void seatdisplay::customerBooked(QString event)
             {
                 (*seats[i]).setDisabled(true);
                 (*seats[i]).setChecked(true);
-                (*seats[i]).setStyleSheet("border-radius: 4; border-color: rgb(138, 138, 138); background-color: qlineargradient(spread:pad, x1:1, y1:1, x2:1, y2:0, stop:0.448864 rgba(0, 85, 0, 255), stop:0.522727 rgba(0, 100, 0, 255));");
             }
         }
     }
