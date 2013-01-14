@@ -322,9 +322,8 @@ void seatdisplay::seatbooking()
         } else {
             QSqlQuery bookSeat;
             for(int i = 0; i < checked.size(); ++i) {
-                bookSeat.prepare("INSERT INTO bookings VALUES (" +
-                                 (*checked[i]).objectName() + "," + cusREF + ","
-                                 + (friRadio->isChecked())?"Friday - 1900":"Saturday - 1900");
+                bookSeat.prepare("INSERT INTO bookings VALUES ('"%(*checked[i]).objectName()%"','"%cusREF%"',"%(friRadio->isChecked())?"'Friday - 1900'":"'Saturday - 1900'");
+                bookSeat.exec();
             }
         }
     } else {
@@ -514,7 +513,14 @@ void booking_dialogue::on_okButton_clicked()
             quer.append("'"); quer.append(txt_passwd->text()); quer.append("'"); quer.append(")");
 
             insertCus.exec(quer);
-            std::cerr << qPrintable(quer) << "\n";
+            cus = true;
+            cusREF = hex;
+
+            QSqlQuery bookSeat;
+            for(int i = 0; i < comboBox->count(); ++i) {
+                bookSeat.prepare("INSERT INTO bookings VALUES ('"%comboBox->itemText(i)%"','"%cusREF%"',"%(friRadio->isChecked())?"'Friday - 1900'":"'Saturday - 1900'");
+                bookSeat.exec();
+            }
         }
     }
 }

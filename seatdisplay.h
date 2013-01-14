@@ -10,6 +10,7 @@
 #include <QtSql/QtSQL>
 #include <QMYSQLDriver>
 #include <QMYSQLResult>
+#include <QStringBuilder>
 #include "ui_seatdisplay.h"
 #include "ui_booking.h"
 #include "ui_adminpanel.h"
