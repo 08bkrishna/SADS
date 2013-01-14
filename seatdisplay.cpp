@@ -276,6 +276,7 @@ void seatdisplay::cusLogin()
             actionCustomer_Login->setText("Logout");
             connect(actionCustomer_Login, SIGNAL(triggered()), this, SLOT(logout()));
             customerBooked("Friday - 1900");
+            friRadio->setChecked(true);
             actionCancel_Seats->setEnabled(true);
         }
 
@@ -306,20 +307,25 @@ void seatdisplay::cancelSeats() {
 void seatdisplay::seatbooking()
 {
     if(cus){
-        int checked;
+        QList<QPushButton *> checked;
         for(int i = 0; i < seats.size(); ++i)
         {
             if((*seats[i]).isChecked() && (*seats[i]).isCheckable())
             {
-                ++checked;
+                checked.append(seats[i]);
             }
         }
-        if(checked > 10) {
+        if(checked.size() > 10) {
             QMessageBox msgbox;
             msgbox.setText("You chosen too many seats.\nPlease go back and choose a maximum of 10 seats.");
             msgbox.exec();
         } else {
-
+            QSqlQuery bookSeat;
+            for(int i = 0; i < checked.size(); ++i) {
+                bookSeat.prepare("INSERT INTO bookings VALUES (" +
+                                 (*checked[i]).objectName() + "," + cusREF + ","
+                                 + (friRadio->isChecked())?"Friday - 1900":"Saturday - 1900");
+            }
         }
     } else {
         this->setEnabled(false);
@@ -404,6 +410,9 @@ void seatdisplay::on_friRadio_toggled(bool checked)
                 }
             }
         }
+        if(cus) {
+            customerBooked(friRadio->text());
+        }
     }
 }
 
@@ -426,6 +435,9 @@ void seatdisplay::on_satRadio_toggled(bool checked)
                     (*seats[i]).setChecked(true);
                 }
             }
+        }
+        if(cus) {
+            customerBooked(satRadio->text());
         }
     }
 }
