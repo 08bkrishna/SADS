@@ -21,7 +21,7 @@ int complexity(QString passwd) {
 
     if(passwd.length() >= 10){longEnough = true;}
 
-    return 5 - lower - upper - numbers - symbols - longEnough;
+    return lower + upper + numbers + symbols + longEnough;
     //`complexity()` IS NOT part of any class, so can ONLY be referred to
     //in this file. It uses a simple checking algorithm to return the
     //complexity of a string, and is used to make sure the user gives
@@ -58,7 +58,7 @@ seatdisplay::seatdisplay(QWidget *parent) : QMainWindow(parent)
     setupUi(this);
     //Sets up the objects in the XML file "seatdisplay.ui"
 
-    QRegExp rxSeats("[A-Z0-9]{0,3}");
+    QRegExp rxSeats("[A-Z0-9]{3,3}");
     seats = this->findChildren<QPushButton *>(rxSeats);
     //These add all of the objects in the `seatdisplay` dialogue to a `QList`
     //which can then be used to edit the states of the buttons in other parts
@@ -76,6 +76,7 @@ seatdisplay::seatdisplay(QWidget *parent) : QMainWindow(parent)
     //Sets up the action `actionBook_Seats`; sets the shortcut;
     //Sets the tooltip, to give users extra help
 
+    connect(actionCancel_Seats, SIGNAL(triggered()), this, SLOT(cancelSeats()));
     actionCancel_Seats->setToolTip(tr("Cancel selected seats"));
     actionCancel_Seats->setShortcut(tr("Ctrl+C"));
     actionCancel_Seats->setDisabled(true);
@@ -95,6 +96,8 @@ seatdisplay::seatdisplay(QWidget *parent) : QMainWindow(parent)
     action_Quit->setToolTip(tr("Quit the application"));
     //These `connect()`s do the same as the one for `actionBook_Seats`
     //and follow the same setup.
+
+    connect(cmbEvent,SIGNAL(currentIndexChanged(QString)),this,SLOT(changeDay(QString)));
 
     this->setWindowTitle("Seating Plan");
 
@@ -124,9 +127,9 @@ seatdisplay::seatdisplay(QWidget *parent) : QMainWindow(parent)
     {
         for(int i = 0; i < seats.size(); ++i)
         {
-            if((*seats[i]).objectName() == query.value(0).toString())
+            if(seats[i]->objectName() == query.value(0).toString())
             {
-                (*seats[i]).setDisabled(true);
+                seats[i]->setDisabled(true);
             }
         }
     }
@@ -135,8 +138,19 @@ seatdisplay::seatdisplay(QWidget *parent) : QMainWindow(parent)
     //the user explicitly wants disabled seats, and ticks the
     //checkbox `checkBox` which signals this intent to the program.
 
-    disableBooked("Friday - 1900");
+    query.exec("SELECT * FROM events");
+
+    while(query.next())
+    {
+        cmbEvent->addItem(query.value(0).toString());
+    }
+    //This adds every event in `computing`.`events` to the combo box `cmbEvent`
+
+    disableBooked(cmbEvent->itemText(0));
     //This disables any seats booked for this event, which is the default.
+
+    cancelButton->setVisible(false);
+    backButton->setVisible(false);
 }
 
 disabilityEditor::disabilityEditor(QDialog *parent) : QDialog(parent)
@@ -152,23 +166,7 @@ disabilityEditor::disabilityEditor(QDialog *parent) : QDialog(parent)
     //this list, therefore `rxSeats` filters these out, as they do not follow
     //the naming convention used by the seat buttons.
 
-    QSqlQuery query;
-    query.exec("SELECT * FROM seats WHERE disabled=1");
-    while(query.next())
-    {
-        for(int i = 0; i < seats.size(); ++i)
-        {
-            if((*seats[i]).objectName() == query.value(0).toString())
-            {
-                (*seats[i]).setStyleSheet("QPushButton {background-color: qlineargradient(spread:pad, x1:0.266, y1:0, x2:0.532327, y2:1, stop:0 rgba(170, 255, 127, 255), stop:1 rgba(170, 255, 0, 255));border-radius: 4px;border-color: rgb(0, 255, 0);image: url(:/resources/wheelchair-icon.png);}QPushButton:checked {background-color: rgb(255, 170, 127);}");
-            }
-        }
-    }
-    //This disables the seats which have been marked as disabled by
-    //the admin users in the DB, and they are only enabled if
-    //the user explicitly wants disabled seats, and ticks the
-    //checkbox `checkBox` which signals this intent to the program.
-
+    setDisab();
 
     connect(setDis, SIGNAL(clicked()), this, SLOT(setDisab()));
     connect(setNotDis, SIGNAL(clicked()), this, SLOT(setNotDisab()));
@@ -217,6 +215,28 @@ login::login(QDialog *parent) : QDialog(parent)
     }
 }
 
+tickets::tickets(QWidget *parent) : QDialog(parent)
+{
+
+}
+
+void tickets::paintEvent(QPaintEvent *)
+{
+//    QPrinter printer;
+//    QPrintDialog printDialog(&printer, this);
+//    if(printDialog.exec()) {
+        QPainter painter(/*&printer*/this);
+        painter.setRenderHint(QPainter::Antialiasing, true);
+        QPixmap ticket(":/resources/ticket.png");
+        painter.drawPixmap(10,10,347,174,ticket);
+        QFont font("SimHei", 18);
+        painter.setFont(font);
+        painter.drawText(130,58,200,100,Qt::AlignLeft,"A01\n£10");
+        painter.setFont(QFont("SimHei", 14));
+        painter.drawText(130,116,180,50,Qt::AlignLeft,"Saturday - 1900");
+//    }
+}
+
 void seatdisplay::showAdminPanel()
 {
     this->setEnabled(false);
@@ -230,6 +250,7 @@ void seatdisplay::showAdminPanel()
     else {
         adminpanel *panel = new adminpanel;
         panel->exec();
+        changeDay(cmbEvent->currentText());
     }
 
     this->setEnabled(true);
@@ -275,8 +296,7 @@ void seatdisplay::cusLogin()
         {
             actionCustomer_Login->setText("Logout");
             connect(actionCustomer_Login, SIGNAL(triggered()), this, SLOT(logout()));
-            customerBooked("Friday - 1900");
-            friRadio->setChecked(true);
+            customerBooked(cmbEvent->currentText());
             actionCancel_Seats->setEnabled(true);
         }
 
@@ -291,17 +311,29 @@ void seatdisplay::logout()
         actionCustomer_Login->setText("Customer Login");
         connect(actionCustomer_Login, SIGNAL(triggered()), this, SLOT(cusLogin()));
         actionCancel_Seats->setDisabled(true);
+        changeDay(cmbEvent->currentText());
     } else if (admin) {
         admin = false;
         actionLogin->setText("Login");
         connect(actionLogin, SIGNAL(triggered()), this, SLOT(adminLogin()));
     }
-
-
 }
 
 void seatdisplay::cancelSeats() {
-
+        for(int i = 0; i < seats.size(); ++i)
+        {
+            if(seats[i]->styleSheet() != "")
+            {
+                seats[i]->setEnabled(true);
+            } else {
+                seats[i]->setDisabled(true);
+            }
+        }
+        cancelButton->setVisible(true);
+        backButton->setVisible(true);
+        bookButton->setEnabled(false);
+        cmbEvent->setEnabled(false);
+        checkBox->setEnabled(false);
 }
 
 void seatdisplay::seatbooking()
@@ -310,22 +342,28 @@ void seatdisplay::seatbooking()
         QList<QPushButton *> checked;
         for(int i = 0; i < seats.size(); ++i)
         {
-            if((*seats[i]).isChecked() && (*seats[i]).isCheckable())
+            if(seats[i]->isChecked() && seats[i]->isCheckable())
             {
                 checked.append(seats[i]);
             }
         }
-        if(checked.size() > 10) {
+        QSqlQuery booked;
+        booked.exec("SELECT * FROM bookings WHERE Events_ID='" + cmbEvent->currentText() + "' AND Customer_REF='" + cusREF + "'");
+        if(checked.size() + booked.size() > 10) {
             QMessageBox msgbox;
             msgbox.setText("You chosen too many seats.\nPlease go back and choose a maximum of 10 seats.");
             msgbox.exec();
         } else {
             QSqlQuery bookSeat;
             for(int i = 0; i < checked.size(); ++i) {
-                bookSeat.prepare("INSERT INTO bookings VALUES ('"%(*checked[i]).objectName()%"','"%cusREF%"',"%(friRadio->isChecked())?"'Friday - 1900'":"'Saturday - 1900'");
+                bookSeat.prepare("INSERT INTO bookings VALUES (?,?,?)");
+                bookSeat.addBindValue((*checked[i]).objectName());
+                bookSeat.addBindValue(cusREF);
+                bookSeat.addBindValue(cmbEvent->currentText());
                 bookSeat.exec();
             }
         }
+        customerBooked(cmbEvent->currentText());
     } else {
         this->setEnabled(false);
         booking_dialogue *dialog = new booking_dialogue;
@@ -338,12 +376,12 @@ void seatdisplay::seatbooking()
 
         for(int i = 0; i < seats.size(); ++i)
         {
-            if((*seats[i]).isChecked() && (*seats[i]).isCheckable())
+            if(seats[i]->isChecked() && seats[i]->isCheckable())
             {
-                dialog->comboBox->addItem((*seats[i]).objectName());
+                dialog->comboBox->addItem(seats[i]->objectName());
 
                 QString quer("SELECT * FROM seats WHERE seat='");
-                quer.append((*seats[i]).objectName()); quer.append("'");
+                quer.append(seats[i]->objectName()); quer.append("'");
 
                 query.prepare(quer);
                 query.exec();
@@ -363,9 +401,7 @@ void seatdisplay::seatbooking()
             }
         }
 
-        QString day = (friRadio->isChecked())?"on Friday":"on Saturday";
-
-        dialog->dayLabel->setText(day);
+        dialog->dayLabel->setText(cmbEvent->currentText());
 
         if(dialog->comboBox->count() == 0) {
             QMessageBox msgbox;
@@ -382,62 +418,33 @@ void seatdisplay::seatbooking()
           //dialog->show();
             dialog->exec();
         }
+
         this->setEnabled(true);
-        //exec waits for it to close, meaning that once we are done with the dialogue box, here the booking dialogue,
+
+        if(cus)
+        {
+            actionCustomer_Login->setText("Logout");
+            connect(actionCustomer_Login, SIGNAL(triggered()), this, SLOT(logout()));
+            customerBooked(cmbEvent->currentText());
+            actionCancel_Seats->setEnabled(true);
+        }
+        //`exec()` waits for it to close, meaning that once we are done with the dialogue box, here the booking dialogue,
         //we can go back to this function, and re-enable the main window which at the start of the function was set
         //to disabled. using show does not do this, therefore exec is used here.
     }
 }
 
-void seatdisplay::on_friRadio_toggled(bool checked)
+void seatdisplay::changeDay(QString event)
 {
-    if(checked)
+    for(int i = 0; i < seats.size(); ++i)
     {
-        sat_clicked.clear();
-        for(int i = 0; i < seats.size(); ++i)
-        {
-            if((*seats[i]).isChecked() && (*seats[i]).isCheckable())
-            {
-                sat_clicked.push_back((*seats[i]).objectName());
-                (*seats[i]).setChecked(false);
-            }
-            for(int j = 0; j < fri_clicked.size(); ++j)
-            {
-                if((*seats[i]).objectName() == fri_clicked[j])
-                {
-                    (*seats[i]).setChecked(true);
-                }
-            }
-        }
-        if(cus) {
-            customerBooked(friRadio->text());
-        }
+        seats[i]->setEnabled(true);
+        seats[i]->setStyleSheet("");
     }
-}
-
-void seatdisplay::on_satRadio_toggled(bool checked)
-{
-    if(checked)
-    {
-        fri_clicked.clear();
-        for(int i = 0; i < seats.size(); ++i)
-        {
-            if((*seats[i]).isChecked() && (*seats[i]).isCheckable())
-            {
-                fri_clicked.push_back((*seats[i]).objectName());
-                (*seats[i]).setChecked(false);
-            }
-            for(int j = 0; j < sat_clicked.size(); ++j)
-            {
-                if((*seats[i]).objectName() == sat_clicked[j])
-                {
-                    (*seats[i]).setChecked(true);
-                }
-            }
-        }
-        if(cus) {
-            customerBooked(satRadio->text());
-        }
+    checkBox->toggle(); checkBox->toggle();
+    disableBooked(event);
+    if(cus) {
+        customerBooked(event);
     }
 }
 
@@ -445,7 +452,6 @@ void booking_dialogue::on_okButton_clicked()
 {
     QRegExp email("[a-z0-9._%+-]+@[a-z0-9.-]+[.]{1,1}[a-z]{2,4}");
     QRegExp tel_no("[0-9]{11,11}");
-    QRegExp passwd("[A-Za-z0-9,./<>?;#:@~[]{}'!£$%^&*()]{10, 1000}");
     QString error;
 
     if(!(tel_no.exactMatch(telNo->text())))
@@ -456,7 +462,7 @@ void booking_dialogue::on_okButton_clicked()
     {
         error += "Your eMail is invalid.\n";
     }
-    if(!(passwd.exactMatch(txt_passwd->text())))
+    if(txt_passwd->text().length() < 10)
     {
         error += "Your password is too short. It must be 10 or more characters long.\n";
     }
@@ -472,11 +478,11 @@ void booking_dialogue::on_okButton_clicked()
         siz1quer.append(txt_email->text()); siz1quer.append("'");
         siz1.exec(siz1quer);
 //START CREATING THE CUS-REF
-        int cus;
+        int cus1;
         for (int i = 0; i < (txt_email->text().length()/3); ++i) {
             if(qPrintable(txt_email->text())[i] == '@') {}
             else {
-                cus *= qPrintable(txt_email->text())[i];
+                cus1 *= qPrintable(txt_email->text())[i];
             }
         }
         int cus2;
@@ -494,7 +500,7 @@ void booking_dialogue::on_okButton_clicked()
             }
         }
         char hex[2560]; //cus-ref var
-        sprintf(hex, "%x%x%x", cus, cus2, cus3); //cus-ref var filled
+        sprintf(hex, "%x%x%x", cus1, cus2, cus3); //cus-ref var filled
 //END CREATING THE CUS-REF
         if(siz1.size() != 0)
         {
@@ -503,24 +509,28 @@ void booking_dialogue::on_okButton_clicked()
             error_box.exec();
         } else {
             QSqlQuery insertCus;
+            insertCus.prepare("INSERT INTO customer VALUES (?,?,?,?,?,?)");
 
-            QString quer("INSERT INTO customer VALUES (");
-            quer.append("'"); quer.append(hex); quer.append("'"); quer.append(", ");
-            quer.append("'"); quer.append(fName->text()); quer.append("'"); quer.append(", ");
-            quer.append("'"); quer.append(sName->text()); quer.append("'"); quer.append(", ");
-            quer.append("'"); quer.append(telNo->text()); quer.append("'"); quer.append(", ");
-            quer.append("'"); quer.append(txt_email->text()); quer.append("'"); quer.append(", ");
-            quer.append("'"); quer.append(txt_passwd->text()); quer.append("'"); quer.append(")");
+            insertCus.addBindValue(hex);
+            insertCus.addBindValue(fName->text());
+            insertCus.addBindValue(sName->text());
+            insertCus.addBindValue(telNo->text());
+            insertCus.addBindValue(txt_email->text());
+            insertCus.addBindValue(txt_passwd->text());
 
-            insertCus.exec(quer);
+            insertCus.exec();
             cus = true;
-            cusREF = hex;
+            cusREF = hex; std::cerr << "cusREF: " << qPrintable(cusREF) << "\ncus: " << cus << '\n';
 
             QSqlQuery bookSeat;
             for(int i = 0; i < comboBox->count(); ++i) {
-                bookSeat.prepare("INSERT INTO bookings VALUES ('"%comboBox->itemText(i)%"','"%cusREF%"',"%(friRadio->isChecked())?"'Friday - 1900'":"'Saturday - 1900'");
+                bookSeat.prepare("INSERT INTO bookings VALUES (?,?,?)");
+                bookSeat.addBindValue(comboBox->itemText(i));
+                bookSeat.addBindValue(cusREF);
+                bookSeat.addBindValue(dayLabel->text());
                 bookSeat.exec();
             }
+            this->close();
         }
     }
 }
@@ -530,14 +540,12 @@ void booking_dialogue::on_okButton_clicked()
   statements to give the user an idea of what data has been duplicated (REF no. or email).
   */
 
-void seatdisplay::on_pushButton_clicked()
+void seatdisplay::on_clearButton_clicked()
 {
     for(int i = 0; i < seats.size(); ++i)
     {
-        (*seats[i]).setChecked(false);
+        seats[i]->setChecked(false);
     }
-    fri_clicked.erase(fri_clicked.begin(), fri_clicked.end());
-    sat_clicked.erase(sat_clicked.begin(), sat_clicked.end());
 }
 
 void adminpanel::disabledSeating()
@@ -640,48 +648,39 @@ void seatdisplay::on_checkBox_toggled(bool checked)
     {
         for(int i = 0; i < seats.size(); ++i)
         {
-            if((*seats[i]).objectName() == query.value(0).toString())
+            if(seats[i]->objectName() == query.value(0).toString())
             {
-                (*seats[i]).setDisabled(!checked);
+                seats[i]->setDisabled(!checked);
             }
         }
     }
-    query.exec("SELECT * FROM seats WHERE disabled=0");
-    while(query.next())
-    {
-        for(int i = 0; i < seats.size(); ++i)
-        {
-            if((*seats[i]).objectName() == query.value(0).toString())
-            {
-                (*seats[i]).setDisabled(false);
-            }
-        }
-    }
+    disableBooked(cmbEvent->currentText());
 }
 
 void booking_dialogue::passChecker(QString passwd) {
-    float start = passStrength->value();
-    float end = complexity(passwd) * 10;
-    std::cerr << end << std::endl;
-    float dir = (start > end)?(-1):(1);
-    while (passStrength->value() != end)
-    {
-        passStrength->setValue(passStrength->value() + dir);
-        for(int i = 0; i < 1000000; ++i){}
+    if(complexity(passwd) < 3) {
+        passStrength->setText("Weak");
+        passStrength->setStyleSheet("background-color: red; color: white;");
+    } else if(complexity(passwd) == 3) {
+        passStrength->setText("OK");
+        passStrength->setStyleSheet("background-color: yellow;");
+    } else {
+        passStrength->setText("Strong");
+        passStrength->setStyleSheet("background-color: green;");
     }
 }
 
 void seatdisplay::disableBooked(QString event)
 {
     QSqlQuery query;
-    query.exec("SELECT * FROM bookings WHERE ID='" + event + "'");
+    query.exec("SELECT * FROM bookings WHERE Events_ID='" + event + "'");
     while(query.next())
     {
         for(int i = 0; i < seats.size(); ++i)
         {
-            if((*seats[i]).objectName() == query.value(0).toString())
+            if(seats[i]->objectName() == query.value(0).toString())
             {
-                (*seats[i]).setDisabled(true);
+                seats[i]->setDisabled(true);
             }
         }
     }
@@ -695,10 +694,14 @@ void seatdisplay::customerBooked(QString event)
     {
         for(int i = 0; i < seats.size(); ++i)
         {
-            if((*seats[i]).objectName() == query.value(0).toString())
+            if(seats[i]->objectName() == query.value(0).toString())
             {
-                (*seats[i]).setDisabled(true);
-                (*seats[i]).setChecked(true);
+                seats[i]->setDisabled(true);
+                seats[i]->setStyleSheet("QPushButton {color: #333;border: 1px solid #555;border-radius: 4px;margin:1px;"
+                                        "background: qradialgradient(cx: 0.3, cy: -0.4, fx: 0.3, fy: -0.4, radius: 1.35, stop: 0 #fff, stop: 1 #888);}"
+                                        "QPushButton:hover {background: qradialgradient(cx: 0.3, cy: -0.4, fx: 0.3, fy: -0.4, radius: 1.35, stop: 0 #888, stop: 1 #bbb);}"
+                                        "QPushButton:checked {background: qradialgradient(cx: 0.3, cy: -0.4, fx: 0.3, fy: -0.4, radius: 1.35, stop: 0 #999, stop: 1 #fff);}");
+                seats[i]->setChecked(false);
             }
         }
     }
@@ -709,9 +712,10 @@ void disabilityEditor::setDisab()
     QSqlQuery *query1 = new QSqlQuery;
     for(int i = 0; i < seats.size(); ++i)
     {
-        if((*seats[i]).isChecked() && (*seats[i]).isCheckable())
+        if(seats[i]->isChecked() && seats[i]->isCheckable())
         {
-            query1->exec("UPDATE `computing`.`seats` SET disabled=1 WHERE seat='" + (*seats[i]).objectName() + "'");
+            query1->exec("UPDATE `computing`.`seats` SET disabled=1 WHERE seat='" + seats[i]->objectName() + "'");
+            seats[i]->setChecked(false);
         }
     }
     QSqlQuery query;
@@ -720,9 +724,13 @@ void disabilityEditor::setDisab()
     {
         for(int i = 0; i < seats.size(); ++i)
         {
-            if((*seats[i]).objectName() == query.value(0).toString())
+            if(seats[i]->objectName() == query.value(0).toString())
             {
-                (*seats[i]).setStyleSheet("QPushButton {background-color: qlineargradient(spread:pad, x1:0.266, y1:0, x2:0.532327, y2:1, stop:0 rgba(170, 255, 127, 255), stop:1 rgba(170, 255, 0, 255));border-radius: 4px;border-color: rgb(0, 255, 0);image: url(:/resources/wheelchair-icon.png);}QPushButton:checked {background-color: rgb(255, 170, 127);}");
+                seats[i]->setStyleSheet("QPushButton {color: #333;border: 1px solid #555;border-radius: 4px;margin:1px;"
+                                        "background: qradialgradient(cx: 0.3, cy: -0.4, fx: 0.3, fy: -0.4, radius: 1.35, stop: 0 #fff, stop: 1 #888);"
+                                        "image: url(:/resources/wheelchair-icon.png);}"
+                                        "QPushButton:hover{background: qradialgradient(cx: 0.3, cy: -0.4, fx: 0.3, fy: -0.4, radius: 1.35, stop: 0 #888, stop: 1 #bbb);}"
+                                        "QPushButton:checked{background: qradialgradient(cx: 0.3, cy: -0.4, fx: 0.3, fy: -0.4, radius: 1.35, stop: 0 #999, stop: 1 #fff);}");
             }
         }
     }
@@ -733,9 +741,10 @@ void disabilityEditor::setNotDisab()
     QSqlQuery *query1 = new QSqlQuery;
     for(int i = 0; i < seats.size(); ++i)
     {
-        if((*seats[i]).isChecked() && (*seats[i]).isCheckable())
+        if(seats[i]->isChecked() && seats[i]->isCheckable())
         {
-            query1->exec("UPDATE `computing`.`seats` SET disabled=0 WHERE seat='" + (*seats[i]).objectName() + "'");
+            query1->exec("UPDATE `computing`.`seats` SET disabled=0 WHERE seat='" + seats[i]->objectName() + "'");
+            seats[i]->setChecked(false);
         }
     }
     QSqlQuery query;
@@ -744,10 +753,41 @@ void disabilityEditor::setNotDisab()
     {
         for(int i = 0; i < seats.size(); ++i)
         {
-            if((*seats[i]).objectName() == query.value(0).toString())
+            if(seats[i]->objectName() == query.value(0).toString())
             {
-                (*seats[i]).setStyleSheet("");
+                seats[i]->setStyleSheet("");
             }
         }
     }
+}
+
+void seatdisplay::on_backButton_clicked()
+{
+    backButton->setVisible(false);
+    cancelButton->setVisible(false);
+    bookButton->setEnabled(true);
+    cmbEvent->setEnabled(true);
+    checkBox->setEnabled(true);
+    changeDay(cmbEvent->currentText());
+}
+
+void seatdisplay::on_cancelButton_clicked()
+{
+    QSqlQuery deleteSeat;
+    for(int i = 0; i < seats.size(); ++i)
+    {
+        if(seats[i]->isChecked() && seats[i]->isCheckable() && seats[i]->isEnabled())
+        {
+            deleteSeat.exec("DELETE FROM bookings WHERE Seats_seat='" + seats[i]->objectName() + "' AND Events_ID='" + cmbEvent->currentText() + "'");
+            seats[i]->setStyleSheet("");
+            seats[i]->setEnabled(false);
+            seats[i]->setChecked(false);
+        }
+    }
+}
+
+void seatdisplay::on_pushButton_clicked()
+{
+    tickets *test = new tickets;
+    test->exec();
 }

@@ -39,14 +39,16 @@ private slots:
     void cusLogin();
     void logout();
     void showAdminPanel();
-    void on_friRadio_toggled(bool checked);
-    void on_satRadio_toggled(bool checked);
-    void on_pushButton_clicked();
+    void on_clearButton_clicked();
     void on_checkBox_toggled(bool checked);
     void disableBooked(QString event);
     void customerBooked(QString event);
     void cancelSeats();
+    void changeDay(QString event);
     //Go to "seatdisplay.cpp" for function definitions and explanation of usage
+    void on_backButton_clicked();
+    void on_cancelButton_clicked();
+    void on_pushButton_clicked();
 };
 
 class booking_dialogue : public QDialog, public Ui::booking
@@ -119,6 +121,15 @@ private slots:
     void setDisab();
     void setNotDisab();
     //Go to "seatdisplay.cpp" for function definitions and explanation of usage
+};
+
+class tickets : public QDialog {
+    Q_OBJECT
+
+public:
+    tickets(QWidget *parent = 0);
+protected:
+    void paintEvent(QPaintEvent *);
 };
 
 #endif // SEATDISPLAY_H

@@ -6,5 +6,6 @@
         <file>resources/theater.jpg</file>
         <file>resources/smiley.jpg</file>
         <file>resources/SADS.png</file>
+        <file>resources/ticket.png</file>
     </qresource>
 </RCC>

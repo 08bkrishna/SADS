@@ -105,10 +105,10 @@
   </widget>
  </widget>
  <tabstops>
-  <tabstop>okButton</tabstop>
-  <tabstop>cancelButton</tabstop>
   <tabstop>lineEdit</tabstop>
   <tabstop>lineEdit_2</tabstop>
+  <tabstop>okButton</tabstop>
+  <tabstop>cancelButton</tabstop>
  </tabstops>
  <resources/>
  <connections>
