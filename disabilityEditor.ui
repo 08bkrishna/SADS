@@ -2106,6 +2106,9 @@ border-radius: 4;</string>
      <height>41</height>
     </rect>
    </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
    <property name="text">
     <string>15</string>
    </property>
@@ -3760,6 +3763,9 @@ border-radius: 4;</string>
    <property name="text">
     <string>Set Selected As
 Disabled Seating</string>
+   </property>
+   <property name="default">
+    <bool>true</bool>
    </property>
   </widget>
   <widget class="QPushButton" name="setNotDis">
